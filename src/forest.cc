@@ -946,6 +946,7 @@ void Forest::implementCoalescence(const Event &event, TimeIntervalIterator &tii)
   new_node->set_parent(target->parent());
   if (!target->local()) {
     new_node->make_nonlocal(target->last_update());
+    std::cout << " adding contemporaries while implementCoalescence " << std::endl;
     contemporaries_.add(new_node);
   } else {
     new_node->make_local();

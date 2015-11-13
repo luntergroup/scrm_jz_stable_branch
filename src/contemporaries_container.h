@@ -241,6 +241,7 @@ inline ContemporariesContainer::ContemporariesContainer(const size_t pop_number,
 }
 
 inline void ContemporariesContainer::add(Node* node) {
+  std::cout << "changing ContemporariesContainer " << std::endl;
   assert(node != NULL);
   assert(!node->is_root());
   if (use_set_) contemporaries_set().at(node->population()).insert(node);

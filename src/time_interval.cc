@@ -71,9 +71,8 @@ TimeIntervalIterator::TimeIntervalIterator(Forest* forest,
   this->current_time_ = start_node->height();
 
   model_->resetTime();
-  if (prune){
-    this->searchContemporaries(start_node);
-  }
+  this->searchContemporaries(start_node);
+
   // Skip through model changes
   while ( model_->getNextTime() <= current_time_ ) {
     model_->increaseTime();
@@ -82,6 +81,7 @@ TimeIntervalIterator::TimeIntervalIterator(Forest* forest,
   next();
 }
 
+TimeIntervalIterator::~TimeIntervalIterator(){}
 
 // Sets current_interval_ to the next time interval.
 void TimeIntervalIterator::next() {
@@ -106,7 +106,9 @@ void TimeIntervalIterator::next() {
 
   if ( start_height >= node_iterator_.height() ) {
     // Update contemporaries
+    if (this->prune) {
     contemporaries()->replaceChildren(*node_iterator_);
+    }
     // Pruning
     if (this->prune) {
       while ( !(*node_iterator_)->is_last() ) {
@@ -146,6 +148,9 @@ void TimeIntervalIterator::next() {
 void TimeIntervalIterator::searchContemporariesBottomUp(Node* node, const bool use_buffer) {
   contemporaries()->clear();
   Node* start_node = NULL;
+std::cout << " contemporaries()->buffer_time() = " << contemporaries()->buffer_time() << std::endl;
+std::cout << " use_buffer " << use_buffer << std::endl;
+std::cout << " this->prune " << this->prune << std::endl;
 
   if ( use_buffer ) {
     assert( node->height() >= contemporaries()->buffer_time() );
@@ -153,23 +158,32 @@ void TimeIntervalIterator::searchContemporariesBottomUp(Node* node, const bool u
     double highest_time = -1;
     for (size_t pop = 0; pop < model()->population_number(); ++pop) {
       auto end = contemporaries()->buffer_end(pop);
+      auto start = contemporaries()->buffer_begin(pop);
+std::cout<< "contemporaries()->buffer_begin(pop) = " << *start << std::endl;
+std::cout<< "contemporaries()->buffer_end(pop) = " << *end << std::endl;
+int buffer_counter = 0; //DEBUG
 
       for (auto it = contemporaries()->buffer_begin(pop); it != end; ++it) {
+        buffer_counter++;
+        std::cout << "buffer_counter = " << buffer_counter << std::endl;
         assert(!(*it)->is_root());
-        //std::cout << "Checking " << *it << std::endl;
+        std::cout << "Checking " << *it << std::endl;
         // Prune the node if needed
         tmp_child_1_ = (*it);
         tmp_child_2_ = (*it)->first_child();
-        while (tmp_child_1_->countChildren() == 1 && forest_->pruneNodeIfNeeded(tmp_child_1_)) {
+        while (this->prune && tmp_child_1_->countChildren() == 1 && forest_->pruneNodeIfNeeded(tmp_child_1_)) {
           tmp_child_1_ = tmp_child_2_;
           if (tmp_child_1_ == NULL ) break;
           tmp_child_2_ = tmp_child_2_->first_child();
         }
-        if (tmp_child_1_ == NULL || forest_->pruneNodeIfNeeded(tmp_child_1_)) continue;
+        if (tmp_child_1_ == NULL || (this->prune && forest_->pruneNodeIfNeeded(tmp_child_1_))) continue;
 
         // And add it if it is a contemporary
         if (tmp_child_1_->height() <= node->height() && node->height() < tmp_child_1_->parent_height()) {
-          contemporaries()->add(tmp_child_1_);
+          if (this->prune){
+std::cout << " this->prune " << this->prune << std::endl;
+            contemporaries()->add(tmp_child_1_);
+          }
         }
 
         // Find the oldest buffered node
@@ -178,18 +192,31 @@ void TimeIntervalIterator::searchContemporariesBottomUp(Node* node, const bool u
           start_node = tmp_child_1_;
         }
       }
+
+      //if (this->prune == false){
+        ////it = start;
+        //for (auto it = contemporaries()->buffer_begin(pop); it != start; ++it) {
+          ////--it;
+        //}
+      //}
+
     }
     // The node after the oldest node in the buffer should be the first node
     // above the buffers_height.
+    if ( start_node == NULL ){ // DEBUG
+      start_node = forest()->nodes()->first();
+    } else {
     assert( start_node != NULL );
     start_node = start_node->next();
     assert( start_node->height() >= contemporaries()->buffer_time() );
+    }
   } else {
     start_node = forest()->nodes()->first();
   }
 
   for (NodeIterator ni = forest_->nodes()->iterator(start_node); *ni != node; ++ni) {
     assert(ni.good());
+std::cout << *ni << std::endl;
 
     // Check if *ni is a contemporary of node
     if ( (*ni)->parent_height() > node->height() ) {
@@ -198,7 +225,7 @@ void TimeIntervalIterator::searchContemporariesBottomUp(Node* node, const bool u
       else tmp_prev_node_ = (*ni)->previous();
       tmp_child_1_ = (*ni)->first_child();
 
-      if (forest_->pruneNodeIfNeeded(*ni)) {
+      if (this->prune && forest_->pruneNodeIfNeeded(*ni)) {
         // Removing the node invalidates the ni
         if (tmp_prev_node_ == NULL) ni = forest_->nodes()->iterator();
         else ni = forest_->nodes()->iterator(tmp_prev_node_);
@@ -206,11 +233,17 @@ void TimeIntervalIterator::searchContemporariesBottomUp(Node* node, const bool u
         // Maybe a child of the node became a contemporary by removing the node
         // This can only happen if the node has only one child.
         if ( tmp_child_1_ != NULL && tmp_child_1_->parent_height() > node->height() ) {
-          this->contemporaries()->add(tmp_child_1_);
+          if (this->prune ){
+std::cout << " this->prune " << this->prune << std::endl;
+            this->contemporaries()->add(tmp_child_1_);
+          }
         }
       } else {
         // No pruning => Just add to contemporaries
-        this->contemporaries()->add(*ni);
+        if ( this->prune ){
+std::cout << " this->prune " << this->prune << std::endl;
+          this->contemporaries()->add(*ni);
+        }
       }
     }
   }
