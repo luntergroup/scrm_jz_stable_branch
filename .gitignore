@@ -90,6 +90,8 @@ unit_tests.trs
 algorithm_tests.trs
 configure.lineno
 
-# Coverage test
-*gcda
-*gcno
+# test coverage
+*.gcda
+*.gcno
+libbash_test.info
+testCoverage/
