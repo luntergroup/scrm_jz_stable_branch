@@ -325,7 +325,9 @@ void Forest::buildInitialTree() {
     this->set_sample_size(i+1);
 
     scrmdout << "* adding node ";
-    //Create a new separate little tree of and at height zero
+    // Create a new separate little tree of node, and at height sample_time(i)
+    // Make sure sample times are nondecreasing
+    assert( i == 0 || model().sample_time(i-1) <= model().sample_time(i) );
     Node* new_leaf = nodes()->createNode(model().sample_time(i), i+1);
     new_leaf->set_population(model().sample_population(i));
     dout << new_leaf << "(" << new_leaf->population() << ") "
