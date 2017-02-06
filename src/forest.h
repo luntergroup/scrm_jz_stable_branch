@@ -151,7 +151,7 @@ class Forest
   double sampleNextGenealogy( bool recordEvents = false );
   virtual void sampleRecSeqPosition( bool recordEvents = false );
   TreePoint samplePoint(Node* node = NULL, double length_left = -1) const;
-  virtual TreePoint sampleBiasedPoint(Node* node = NULL, double length_left = -1) { TreePoint tp; return tp;};
+  virtual TreePoint sampleBiasedPoint() { TreePoint tp; return tp;};
   void clear();
 
   //Debugging Tools
