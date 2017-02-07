@@ -79,6 +79,7 @@ class Forest
   friend class ParticleContainer;
   friend class TimeInterval;
   friend class TimeIntervalIterator;
+  friend class SegSites;
 
   Forest(Model *model, RandomGenerator *random_generator);
   Forest(const Forest &current_forest);
@@ -132,8 +133,8 @@ class Forest
   double buildInitialTree();
   double sampleNextGenealogy( bool recordEvents = false );
   double sampleRecSeqPosition( bool recordEvents = false );
-  TreePoint samplePoint(Node* node = NULL, double length_left = -1) const;
-  virtual TreePoint sampleBiasedPoint() { TreePoint tp; return tp;};
+  virtual double samplePoint();
+  double samplePoint_recursive( Node* node, double length_left ); 
   virtual double sampleNextBase();
   double resampleNextBase() {
       // Resamples next recombination base, in case a state was duplicated. Note that current_base_ must be up to date

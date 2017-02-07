@@ -27,11 +27,13 @@ void SegSites::calculate(const Forest &forest) {
   if (position() != forest.current_base()) 
     throw std::logic_error("Problem simulating seg_sites: Did we skip a forest segment?");
 
+  TreePoint rec_point = forest.rec_point;
   double position_at = forest.current_base();
   position_at += forest.random_generator()->sampleExpo(forest.getLocalTreeLength() * forest.model().mutation_rate());
 
   while (position_at < forest.next_base()) {
-    TreePoint mutation = forest.samplePoint();
+    const_cast<Forest*>(&forest)->samplePoint();      
+    const TreePoint& mutation = forest.rec_point;
     heights_.push_back(mutation.height() / (4 * forest.model().default_pop_size()));
     haplotypes_.push_back(getHaplotypes(mutation, forest));
     if (forest.model().getSequenceScaling() == absolute) {
@@ -43,6 +45,7 @@ void SegSites::calculate(const Forest &forest) {
   }
 
   set_position(forest.next_base());
+  const_cast<Forest*>(&forest)->rec_point = rec_point;  // rescue constness
 }
 
 

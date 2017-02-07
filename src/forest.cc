@@ -374,16 +374,15 @@ double Forest::buildInitialTree() {
  *
  * \return The sampled point on the tree.
  */
-TreePoint Forest::samplePoint(Node* node, double length_left) const{
-  if (node == NULL) {
-    // Called without arguments => initialization
+double Forest::samplePoint() {
     assert( this->checkTreeLength() );
+    return samplePoint_recursive( local_root(), random_generator()->sample() * getLocalTreeLength() );
+}
 
-    node = this->local_root();
-    length_left = random_generator()->sample() * getLocalTreeLength();
-    assert( 0 < length_left && length_left < getLocalTreeLength() );
-  }
 
+double Forest::samplePoint_recursive(Node* node, double length_left) {
+
+  assert( node );
   assert( node->local() || node == this->local_root() );
   assert( length_left >= 0 );
   assert( length_left < (node->length_below() + node->height_above()) );
@@ -391,7 +390,8 @@ TreePoint Forest::samplePoint(Node* node, double length_left) const{
   if ( node != this->local_root() ) {
     if ( length_left < node->height_above() ) {
       assert( node->local() );
-      return TreePoint(node, length_left, true);
+      rec_point = TreePoint(node, length_left, true);
+      return 1.0;
     }
 
     length_left -= node->height_above();
@@ -404,31 +404,19 @@ TreePoint Forest::samplePoint(Node* node, double length_left) const{
 
   // If we have only one local child, then give it the full length we have left.
   if ( !node->first_child()->local() ) {
-    return samplePoint(node->second_child(), length_left);
+      return samplePoint_recursive(node->second_child(), length_left);
   }
   if ( node->second_child() == NULL || !node->second_child()->local() ) {
-    return samplePoint(node->first_child(), length_left);
+      return samplePoint_recursive(node->first_child(), length_left);
   }
 
   // If we have two local children, the look if we should go down left or right.
   double tmp = node->first_child()->height_above() + node->first_child()->length_below();
   if ( length_left <= tmp )
-    return samplePoint(node->first_child(), length_left);
+    return samplePoint_recursive(node->first_child(), length_left);
   else
-    return samplePoint(node->second_child(), length_left - tmp);
+    return samplePoint_recursive(node->second_child(), length_left - tmp);
 }
-/* Alternative inefficient implementation
-TreePoint Forest::samplePoint(Node* node, double length_left) {
- length_left = random_generator()->sample() * local_tree_length();
- for (auto ni = nodes()->iterator(); ni.good(); ++ni) {
-   if (!(*ni)->local()) continue;
-   if (length_left < (*ni)->height_above()) return TreePoint(*ni, length_left, true);
-   else length_left -= (*ni)->height_above();
- }
- assert(0);
-}
-*/
-
 
 
 /**
@@ -458,8 +446,8 @@ double Forest::sampleNextGenealogy( bool recordEvents ) {
            << "Sequence position: " << this->current_base() << std::endl;
   assert( this->current_base() <= this->model().loci_length() );
 
-  // Sample the recombination point.  (Use TreePoint rec_point member)
-  rec_point = model().biased_sampling ? sampleBiasedPoint() : samplePoint() ;
+  // Sample the recombination point into TreePoint rec_point member
+  double importance_weight = samplePoint();
   assert( rec_point.base_node()->local() );
   assert( this->printTree() );
 
@@ -479,7 +467,7 @@ double Forest::sampleNextGenealogy( bool recordEvents ) {
   assert( this->printNodes() );
   assert( this->coalescence_finished() );
 
-  return rec_point.height();
+  return importance_weight;
 }
 
 /**
