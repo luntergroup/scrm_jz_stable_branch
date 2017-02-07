@@ -473,13 +473,14 @@ class Model
 
     void clearBiasHeights()                  { bias_heights_.clear(); }
     void clearBiasRatios()                   { bias_ratios_.clear(); }
-    void clearBiasStrengths()                { bias_strengths_.clear(); }
+    void clearBiasStrengths()                { bias_strengths_.clear(); bias_ratios_.clear(); }
     void addToBiasHeights(double height)     { biased_sampling = true;
-                                               bias_heights_.push_back( height ); } //height is scaled in generations
+                                               bias_heights_.push_back( height ); }   // height is scaled in generations (TODO: change)
     void addToBiasRatios(double ratio)       { biased_sampling = true;
                                                bias_ratios_.push_back( ratio ); }
     void addToBiasStrengths(double strength) { biased_sampling = true;
-                                               bias_strengths_.push_back( strength ); }
+                                               bias_strengths_.push_back( strength );
+                                               addToBiasRatios( strength ); }         // also add default bias ratio
 
     void lags_to_application_delays(std::vector<double> lags) {
         application_delays.resize(0);

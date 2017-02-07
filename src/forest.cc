@@ -302,7 +302,7 @@ void Forest::flushOldRecombinations() {
  *
  * Also creates the sample nodes.
  */
-void Forest::buildInitialTree() {
+double Forest::buildInitialTree() {
   dout << "===== BUILDING INITIAL TREE =====" << std::endl;
   assert(this->nodes()->size() == 0);
   assert(this->segment_count() == 0);
@@ -346,10 +346,11 @@ void Forest::buildInitialTree() {
     assert(this->printNodes());
     assert(this->coalescence_finished());
   }
-  this->sampleNextBase();
+  double importance_rate = this->sampleNextBase();
   dout << "Next Sequence position: " << this->next_base() << std::endl;
   this->record_Recombevent_b4_extension();
   this->calcSegmentSumStats();
+  return importance_rate;
 }
 
 
@@ -441,19 +442,14 @@ TreePoint Forest::samplePoint(Node* node, double length_left) {
 double Forest::sampleNextGenealogy( bool recordEvents ) {
   ++current_rec_; // Move to next recombination;
 
-  //this->set_current_base(next_base_);
-
   if (current_base() == model().getCurrentSequencePosition()) {
     // Don't implement a recombination if we are just here because rates changed
-    dout << std::endl ;
     scrmdout << "Position: " << this->current_base() << ": Changing rates." << std::endl;
-    //this->record_Recombevent_atNewGenealogy( 0 );
-    return 0; //enables the above line to be carried out at a higher level
+    return 0; // signal that no recombination has occurred
   }
 
   assert( current_base() > model().getCurrentSequencePosition() );
   assert( current_base() < model().getNextSequencePosition() );
-
   assert( tmp_event_time_ >= 0 );
   this->contemporaries_.buffer(tmp_event_time_);
 
@@ -466,7 +462,6 @@ double Forest::sampleNextGenealogy( bool recordEvents ) {
   rec_point = model().biased_sampling ? sampleBiasedPoint() : samplePoint() ;
   assert( rec_point.base_node()->local() );
   assert( this->printTree() );
-//recombination_counter++;
 
   scrmdout << "* Recombination at height " << rec_point.height() << " ";
   dout << "(above " << rec_point.base_node() << ")"<< std::endl;
@@ -492,20 +487,20 @@ double Forest::sampleNextGenealogy( bool recordEvents ) {
  *
  */
 
-void Forest::sampleRecSeqPosition( bool recordEvents ) {
-  this->sampleNextBase();
+double Forest::sampleRecSeqPosition( bool recordEvents ) {
 
-  if (current_base() == model().getCurrentSequencePosition()) {
-    // we are just here because rates changed
-    dout << "Next Position: " << this->next_base() << std::endl;
-  }
+    if (!recordEvents) {
+        // Force SCRM to prune tree in order to match trees in smcsmc when running tests
+        for (TimeIntervalIterator ti(this, this->nodes_.at(0)); ti.good(); ++ti) { }
+    }
 
-  if (!recordEvents) { // Forces SCRM to prune tree in order to match trees in smcsmc when running tests
-    for (TimeIntervalIterator ti(this, this->nodes_.at(0)); ti.good(); ++ti) { }
-   }
+    // Sample the next base.  This could be because the recombination rate changed; 
+    // that case is handled in sampleNextBase
+    double importance_rate = this->sampleNextBase();
 
-  assert( this->printTree() );
-  this->calcSegmentSumStats();
+    assert( this->printTree() );
+    this->calcSegmentSumStats();
+    return importance_rate;
 }
 
 /**
@@ -1410,19 +1405,27 @@ void Forest::readNewick( std::string &in_str ){
 
 
 // Must be called AFTER the tree was modified.
-void Forest::sampleNextBase() {
-  double length = random_generator()->sampleExpoLimit(getLocalTreeLength() * model().recombination_rate(),
-                                                      model().getNextSequencePosition() - current_base());
-  if (length == -1) {
-    // No recombination until the model changes
-    set_next_base(model().getNextSequencePosition());
-    if (next_base() < model().loci_length()) writable_model()->increaseSequencePosition();
-  } else {
-    // Recombination in the sequence segment
-    set_next_base(current_base() + length);
-  }
+double Forest::sampleNextBase() {
 
-  assert(next_base() > current_base());
-  assert(next_base() <= model().loci_length());
+    double length = random_generator()->sampleExpoLimit(getLocalTreeLength() * model().recombination_rate(),
+                                                        model().getNextSequencePosition() - current_base());
+    if (length == -1) {
+
+        // No recombination until the model changes
+        set_next_base(model().getNextSequencePosition());
+        if (next_base() < model().loci_length())
+            writable_model()->increaseSequencePosition();
+
+    } else {
+
+        // Recombination in the sequence segment
+        set_next_base(current_base() + length);
+
+    }
+    
+    assert(next_base() > current_base());
+    assert(next_base() <= model().loci_length());
+    
+    return 0.0;   // importance "rate" (per-nt log importance weight)
 }
 

@@ -41,8 +41,9 @@ Model::Model() :
 
   this->setSequenceScaling(ms);
 
-  this->bias_heights_ = std::vector<double> ({0.0, DBL_MAX});
-  this->bias_strengths_ = std::vector <double> ({1.0});
+  this->bias_heights_ = std::vector<double>   ({0.0, DBL_MAX}); // initialize to dummy values
+  this->bias_strengths_ = std::vector<double> ({1.0});
+  this->bias_ratios_ = std::vector<double>    ({1.0});   
 
   this->resetTime();
   this->resetSequencePosition();
