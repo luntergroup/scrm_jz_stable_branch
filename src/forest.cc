@@ -433,7 +433,7 @@ double Forest::sampleNextGenealogy( bool recordEvents ) {
   if (current_base() == model().getCurrentSequencePosition()) {
     // Don't implement a recombination if we are just here because rates changed
     scrmdout << "Position: " << this->current_base() << ": Changing rates." << std::endl;
-    return 0; // signal that no recombination has occurred
+    return -1; // signal that no recombination has occurred
   }
 
   assert( current_base() > model().getCurrentSequencePosition() );
