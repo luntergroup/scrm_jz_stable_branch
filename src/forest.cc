@@ -105,12 +105,6 @@ Forest::Forest(const Forest &current_forest) {
 
   this->coalescence_finished_ = true;
 
-  //dout<<"  #################### check copied forest ###############"<<std::endl;
-  //assert(this->printTree());
-  //assert(this->printNodes());
-  //assert(this->checkTree());
-  //assert(this->checkLeafsOnLocalTree() );
-  //dout<<"  #################### check copied forest finished ###############"<<std::endl<<std::endl;
 }
 
 
@@ -348,7 +342,6 @@ double Forest::buildInitialTree() {
   }
   double importance_rate = this->sampleNextBase();
   dout << "Next Sequence position: " << this->next_base() << std::endl;
-  this->record_Recombevent_b4_extension();
   this->calcSegmentSumStats();
   return importance_rate;
 }
@@ -521,7 +514,6 @@ void Forest::sampleCoalescences( Node *start_node, bool recordEvents ) {
 
   // Only prune every second round
   for (TimeIntervalIterator ti(this, active_node(0)); ti.good(); ++ti) {
-    this->recomb_opp_x_within_scrm = 0; // DEBUG reset the recombination opportunity within this time interval to zero
     scrmdout << "* * Time interval: " << (*ti).start_height() << " - "
              << (*ti).end_height() << " (Last event at " << tmp_event_.time() << ")" << std::endl;
 
@@ -538,7 +530,7 @@ void Forest::sampleCoalescences( Node *start_node, bool recordEvents ) {
 
     // Calculate the rates of events in this time interval
     assert( checkContemporaries((*ti).start_height()) );
-    calcRates(*ti, recomb_opp_x_within_scrm); // DEBUG extract recombination opportunity within this interval
+    calcRates(*ti);
 
     scrmdout << "* * * Active Nodes: a0:" << active_node(0) << ":s" << states_[0]
              << "(p" << active_node(0)->population() << ")"
@@ -570,7 +562,7 @@ void Forest::sampleCoalescences( Node *start_node, bool recordEvents ) {
     assert( tmp_event_.isNoEvent() || tmp_event_.time() <= (*ti).end_height() );
 
     if ( recordEvents ){
-        this->record_all_event(ti, recomb_opp_x_within_scrm); // Record the recombination events within this interval, recomb_opp_x_within_scrm is for checking purpose
+        this->record_all_event(ti); // Record the recombination events within this interval
     }
     // Go on if nothing happens in this time interval
 
@@ -603,7 +595,7 @@ void Forest::sampleCoalescences( Node *start_node, bool recordEvents ) {
 }
 
 
-void Forest::calcRates(const TimeInterval &ti, double &recomb_opp_x_within_scrm) {
+void Forest::calcRates(const TimeInterval &ti) {
   rates_[0] = 0.0;
   rates_[1] = 0.0;
   rates_[2] = 0.0;
@@ -625,7 +617,6 @@ void Forest::calcRates(const TimeInterval &ti, double &recomb_opp_x_within_scrm)
   else if (states_[0] == 2) {
     // recombining
     rates_[0] += calcRecombinationRate(active_node(0));
-    recomb_opp_x_within_scrm += this->current_base() - active_node(0)->last_update(); // DEBUG
   }
 
   // The second node is a bit more complicated
@@ -662,7 +653,6 @@ void Forest::calcRates(const TimeInterval &ti, double &recomb_opp_x_within_scrm)
   else if (states_[1] == 2) {
     // recombining
     rates_[0] += calcRecombinationRate(active_node(1));
-    recomb_opp_x_within_scrm += this->current_base() - active_node(1)->last_update(); // DEBUG
   }
 
   assert(rates_[0] >= 0);

@@ -191,11 +191,8 @@ class Forest
 
   Node* trackLocalNode(Node *node) const;
 
-  //record events
-  virtual void record_Recombevent_b4_extension ( ) { }
-  virtual void record_Recombevent_atNewGenealogy ( double event_height ){ }
-  virtual void record_all_event( TimeIntervalIterator const &ti, double &recomb_opp_x_within_scrm ) { }
-  double recomb_opp_x_within_scrm; // DEBUG
+  // Record events
+  virtual void record_all_event( TimeIntervalIterator const &ti) { }
 
   // Calc & Print Summary Statistics
   void calcSegmentSumStats();
@@ -262,7 +259,7 @@ class Forest
   double calcCoalescenceRate(const size_t pop, const TimeInterval &ti) const;
   double calcPwCoalescenceRate(const size_t pop, const TimeInterval &ti) const;
   double calcRecombinationRate(Node const* node) const;
-  void calcRates(const TimeInterval &ti, double &recomb_opp_x_within_scrm);
+  void calcRates(const TimeInterval &ti);
   void sampleEvent(const TimeInterval &ti, double &event_time, Event &return_event) const;
   void sampleEventType(const double time, const size_t time_line,
                        const TimeInterval &ti, Event &return_event) const;
