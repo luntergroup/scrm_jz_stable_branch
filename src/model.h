@@ -341,8 +341,8 @@ class Model
        current_total_mig_rates_ = &(total_mig_rates_list_.at(current_time_idx_));
    }
 
-   void resetSequencePosition() {
-     current_seq_idx_ = 0;
+   void resetSequencePosition( size_t new_idx = 0 ) {
+     current_seq_idx_ = new_idx;
    }
 
    void increaseTime() {
@@ -357,17 +357,6 @@ class Model
        current_mig_rates_ = &(mig_rates_list_.at(current_time_idx_));
      if ( ! total_mig_rates_list_.at(current_time_idx_).empty() )
        current_total_mig_rates_ = &(total_mig_rates_list_.at(current_time_idx_));
-//=======  JOE: I think the following can be replaced
-     //// is the check for non-NULL-ness redundant?  Change into an assert?
-     //if ( pop_sizes_list_.at(current_time_idx_) != NULL )
-       //current_pop_sizes_ = pop_sizes_list_.at(current_time_idx_);
-     //if ( growth_rates_list_.at(current_time_idx_) != NULL )
-       //current_growth_rates_ = growth_rates_list_.at(current_time_idx_);
-     //if ( mig_rates_list_.at(current_time_idx_) != NULL )
-       //current_mig_rates_ = mig_rates_list_.at(current_time_idx_);
-     //if ( total_mig_rates_list_.at(current_time_idx_) != NULL )
-       //current_total_mig_rates_ = total_mig_rates_list_.at(current_time_idx_);
-//>>>>>>> squashing_JZ
    };
 
    size_t getNumEpochs() const { return change_times_.size(); }
