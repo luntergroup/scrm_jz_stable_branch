@@ -448,6 +448,10 @@ class Model
     loci_length_ = length;
    }
 
+   size_t get_position_index() const {
+       return this->current_seq_idx_;
+   }
+
    //biased sampling
     bool biased_sampling = false;                         // this is turned on if br or bh is set
     std::vector<double> bias_heights_;                    // this vector defines the outer time boundaries of the sections with different rec rate
@@ -486,10 +490,6 @@ class Model
 
    double change_position(size_t idx) const {
     return this->change_position_.at(idx);
-   }
-
-   size_t get_position_index() const {
-    return this->current_seq_idx_;
    }
 
    size_t addChangeTime(double time, const bool &scaled = false);
