@@ -296,7 +296,7 @@ void Forest::flushOldRecombinations() {
  *
  * Also creates the sample nodes.
  */
-double Forest::buildInitialTree() {
+double Forest::buildInitialTree( bool record_and_bias ) {
   dout << "===== BUILDING INITIAL TREE =====" << std::endl;
   assert(this->nodes()->size() == 0);
   assert(this->segment_count() == 0);
@@ -340,7 +340,7 @@ double Forest::buildInitialTree() {
     assert(this->printNodes());
     assert(this->coalescence_finished());
   }
-  double importance_rate = this->sampleNextBase();
+  double importance_rate = this->sampleNextBase( record_and_bias );
   dout << "Next Sequence position: " << this->next_base() << std::endl;
   this->calcSegmentSumStats();
   return importance_rate;
@@ -367,7 +367,7 @@ double Forest::buildInitialTree() {
  *
  * \return The sampled point on the tree.
  */
-double Forest::samplePoint() {
+double Forest::samplePoint( bool record_and_bias ) {
     assert( this->checkTreeLength() );
     return samplePoint_recursive( local_root(), random_generator()->sample() * getLocalTreeLength() );
 }
@@ -420,7 +420,7 @@ double Forest::samplePoint_recursive(Node* node, double length_left) {
  * @ingroup group_scrm_next
  * @ingroup group_pf_update
  */
-double Forest::sampleNextGenealogy( bool recordEvents ) {
+double Forest::sampleNextGenealogy( bool record_and_bias ) {
   ++current_rec_; // Move to next recombination;
 
   if (current_base() == model().getCurrentSequencePosition()) {
@@ -430,7 +430,10 @@ double Forest::sampleNextGenealogy( bool recordEvents ) {
   }
 
   assert( current_base() > model().getCurrentSequencePosition() );
-  assert( current_base() < model().getNextSequencePosition() );
+  // when calibrating lag times, sampleNextGenealogy is called with record_and_bias == false
+  // and as a result, no recombination guide is used, so the sequence position remains at
+  // 0, which would cause the next assertion to fail:
+  assert( current_base() < model().getNextSequencePosition() || (!record_and_bias) );
   assert( tmp_event_time_ >= 0 );
   this->contemporaries_.buffer(tmp_event_time_);
 
@@ -440,7 +443,7 @@ double Forest::sampleNextGenealogy( bool recordEvents ) {
   assert( this->current_base() <= this->model().loci_length() );
 
   // Sample the recombination point into TreePoint rec_point member
-  double importance_weight = samplePoint();
+  double importance_weight = samplePoint( record_and_bias );
   assert( rec_point.base_node()->local() );
   assert( this->printTree() );
 
@@ -452,7 +455,7 @@ double Forest::sampleNextGenealogy( bool recordEvents ) {
 
   assert( this->printTree() );
   scrmdout << "* Starting coalescence" << std::endl;
-  this->sampleCoalescences( rec_point.base_node()->parent(), recordEvents );
+  this->sampleCoalescences( rec_point.base_node()->parent(), record_and_bias );
 
   assert( this->checkLeafsOnLocalTree() );
   assert( this->checkTree() );
@@ -468,16 +471,16 @@ double Forest::sampleNextGenealogy( bool recordEvents ) {
  *
  */
 
-double Forest::sampleRecSeqPosition( bool recordEvents ) {
+double Forest::sampleRecSeqPosition( bool record_and_bias ) {
 
-    if (!recordEvents) {
+    if (!record_and_bias) {
         // Force SCRM to prune tree in order to match trees in smcsmc when running tests
         for (TimeIntervalIterator ti(this, this->nodes_.at(0)); ti.good(); ++ti) { }
     }
 
     // Sample the next base.  This could be because the recombination rate changed; 
     // that case is handled in sampleNextBase
-    double importance_rate = this->sampleNextBase();
+    double importance_rate = this->sampleNextBase( record_and_bias );
 
     assert( this->printTree() );
     this->calcSegmentSumStats();
@@ -490,7 +493,7 @@ double Forest::sampleRecSeqPosition( bool recordEvents ) {
  * \param start_node The node at which the coalescence starts. Must be the root
  *                   of a tree.
  */
-void Forest::sampleCoalescences( Node *start_node, bool recordEvents ) {
+void Forest::sampleCoalescences( Node *start_node, bool record_and_bias ) {
   assert( start_node->is_root() );
   // We can have one or active local nodes: If the coalescing node passes the
   // local root, it also starts a coalescence.
@@ -561,7 +564,7 @@ void Forest::sampleCoalescences( Node *start_node, bool recordEvents ) {
     assert( tmp_event_.isNoEvent() || (*ti).start_height() <= tmp_event_.time() );
     assert( tmp_event_.isNoEvent() || tmp_event_.time() <= (*ti).end_height() );
 
-    if ( recordEvents ){
+    if ( record_and_bias ){
         this->record_all_event(ti); // Record the recombination events within this interval
     }
     // Go on if nothing happens in this time interval
@@ -1376,14 +1379,14 @@ void Forest::readNewick( std::string &in_str ){
   assert(this->printNodes());
   assert(this->printTree());
   dout << "contemporaries_.size()"<<contemporaries_.size(0) <<std::endl;
-  this->sampleNextBase();
+  this->sampleNextBase( true );
   this->calcSegmentSumStats();
   this->tmp_event_time_ = this->local_root()->height();
 }
 
 
 // Must be called AFTER the tree was modified.
-double Forest::sampleNextBase() {
+double Forest::sampleNextBase( bool record_and_bias ) {
 
     double length = random_generator()->sampleExpoLimit(getLocalTreeLength() * model().recombination_rate(),
                                                         model().getNextSequencePosition() - current_base());

@@ -130,12 +130,12 @@ class Forest
   NodeContainer const *getNodes() const { return &nodes_; };
 
   // Central functions
-  double buildInitialTree();
-  double sampleNextGenealogy( bool recordEvents = false );
-  double sampleRecSeqPosition( bool recordEvents = false );
-  virtual double samplePoint();
+  double buildInitialTree( bool record_and_bias = false );
+  double sampleNextGenealogy( bool record_and_bias = false );
+  double sampleRecSeqPosition( bool record_and_bias = false );
+  virtual double samplePoint( bool record_and_bias = false );
   double samplePoint_recursive( Node* node, double length_left ); 
-  virtual double sampleNextBase();
+  virtual double sampleNextBase( bool record_and_bias );
   double resampleNextBase() {
       // Resamples next recombination base, in case a state was duplicated. Note that current_base_ must be up to date
       assert ( rec_bases_.size() > 1 );
@@ -146,7 +146,7 @@ class Forest
       }
       rec_bases_.pop_back();
       // the remainder is the same as for sampleNextBase; the previous next_base_ is overwritten
-      return sampleNextBase();
+      return sampleNextBase( true );
   }
 
   void clear();
