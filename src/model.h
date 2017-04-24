@@ -83,7 +83,7 @@ class Model
    double default_pop_size() const { return Model::default_pop_size_; };
 
 
-    std::vector<double> change_times() const { return change_times_; }
+   const std::vector<double>& change_times() const { return change_times_; }
 
    /**
     * @brief Returns the scaling factor for times and many parameters

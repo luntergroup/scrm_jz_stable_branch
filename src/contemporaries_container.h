@@ -127,29 +127,29 @@ class ContemporariesContainer {
   // Create Iterators
   ContemporariesConstIterator begin(const size_t pop) const {
     if (use_set_) return ContemporariesConstIterator(contemporaries_set().at(pop).cbegin());
-    else return ContemporariesConstIterator(contemporaries_vector().at(pop).cbegin());
+    else return ContemporariesConstIterator(contemporaries_vector()[pop].cbegin());
   }
   ContemporariesConstIterator end(const size_t pop) const {
     if (use_set_) return ContemporariesConstIterator(contemporaries_set().at(pop).cend());
-    else return ContemporariesConstIterator(contemporaries_vector().at(pop).cend());
+    else return ContemporariesConstIterator(contemporaries_vector()[pop].cend());
   }
 
   // Create Iterators for the buffer
   ContemporariesConstIterator buffer_begin(const size_t pop) const {
     if (use_set_) return ContemporariesConstIterator(buffer_set().at(pop).cbegin());
-    else return ContemporariesConstIterator(buffer_vector().at(pop).cbegin());
+    else return ContemporariesConstIterator(buffer_vector()[pop].cbegin());
   }
   ContemporariesConstIterator buffer_end(const size_t pop) const {
     if (use_set_) return ContemporariesConstIterator(buffer_set().at(pop).cend());
-    else return ContemporariesConstIterator(buffer_vector().at(pop).cend());
+    else return ContemporariesConstIterator(buffer_vector()[pop].cend());
   }
   ContemporariesIterator buffer_begin(const size_t pop) {
     if (use_set_) return ContemporariesIterator(buffer_set().at(pop).begin());
-    else return ContemporariesIterator(buffer_vector().at(pop).begin());
+    else return ContemporariesIterator(buffer_vector()[pop].begin());
   }
   ContemporariesIterator buffer_end(const size_t pop) {
     if (use_set_) return ContemporariesIterator(buffer_set().at(pop).end());
-    else return ContemporariesIterator(buffer_vector().at(pop).end());
+    else return ContemporariesIterator(buffer_vector()[pop].end());
   }
 
  private:
@@ -194,8 +194,9 @@ class ContemporariesContainer {
   size_t numberOfLocalContemporaries() const {
     size_t num = 0;
     for ( size_t pop_i = 0 ; pop_i < this->contemporaries_vector().size() ; pop_i++ ){
-      for ( size_t i = 0 ; i < this->contemporaries_vector().at(pop_i).size(); i++ ) {
-        if ( this->contemporaries_vector().at(pop_i)[i]->local() ) num++;
+      for ( size_t i = 0 ; i < this->contemporaries_vector()[pop_i].size(); i++ ) {
+          //if ( this->contemporaries_vector()[pop_i][i]->local() ) num++;
+          num += this->contemporaries_vector()[pop_i][i]->local();
       }
     }
     return num;
@@ -248,7 +249,7 @@ inline void ContemporariesContainer::add(Node* node) {
   assert(node != NULL);
   assert(!node->is_root());
   if (use_set_) contemporaries_set().at(node->population()).insert(node);
-  else contemporaries_vector().at(node->population()).push_back(node);
+  else contemporaries_vector()[node->population()].push_back(node);
 }
 
 inline void ContemporariesContainer::remove(Node* node) {
@@ -256,11 +257,11 @@ inline void ContemporariesContainer::remove(Node* node) {
   if (use_set_) contemporaries_set().at(node->population()).erase(node);
   else {
     size_t pop = node->population();
-    auto it = std::find(contemporaries_vector().at(pop).begin(),
-                        contemporaries_vector().at(pop).end(),
+    auto it = std::find(contemporaries_vector()[pop].begin(),
+                        contemporaries_vector()[pop].end(),
                         node);
-    if (it != contemporaries_vector().at(pop).end()) {
-      contemporaries_vector().at(pop).erase(it);
+    if (it != contemporaries_vector()[pop].end()) {
+      contemporaries_vector()[pop].erase(it);
     }
   }
 }
@@ -295,8 +296,8 @@ inline void ContemporariesContainer::clear(const bool clear_buffer) {
 
 
 inline size_t ContemporariesContainer::size(const size_t pop) const {
-  if (use_set_) return contemporaries_set().at(pop).size();
-  else return contemporaries_vector().at(pop).size();
+  if (use_set_) return contemporaries_set()[pop].size();
+  else return contemporaries_vector()[pop].size();
 }
 
 /**
@@ -335,7 +336,7 @@ inline Node* ContemporariesContainer::sample(const size_t pop) const {
       --sample;
     }
   } else {
-    return contemporaries_vector().at(pop).at(sample);
+    return contemporaries_vector()[pop][sample];
   }
 
   throw std::logic_error("Failed to find the contemporary I wanted to sample.");
