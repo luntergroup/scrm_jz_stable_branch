@@ -349,14 +349,14 @@ class Model
      if ( current_time_idx_ == change_times_.size() ) throw std::out_of_range("Model change times out of range");
      ++current_time_idx_;
 
-     if ( ! pop_sizes_list_.at(current_time_idx_).empty() )
-       current_pop_sizes_ = &(pop_sizes_list_.at(current_time_idx_));
-     if ( ! growth_rates_list_.at(current_time_idx_).empty() )
-       current_growth_rates_ = &(growth_rates_list_.at(current_time_idx_));
+     if ( ! pop_sizes_list_[current_time_idx_].empty() )
+       current_pop_sizes_ = &(pop_sizes_list_[current_time_idx_]);
+     if ( ! growth_rates_list_[current_time_idx_].empty() )
+       current_growth_rates_ = &(growth_rates_list_[current_time_idx_]);
      if ( ! mig_rates_list_.at(current_time_idx_).empty() )
-       current_mig_rates_ = &(mig_rates_list_.at(current_time_idx_));
-     if ( ! total_mig_rates_list_.at(current_time_idx_).empty() )
-       current_total_mig_rates_ = &(total_mig_rates_list_.at(current_time_idx_));
+       current_mig_rates_ = &(mig_rates_list_[current_time_idx_]);
+     if ( ! total_mig_rates_list_[current_time_idx_].empty() )
+       current_total_mig_rates_ = &(total_mig_rates_list_[current_time_idx_]);
    };
 
    size_t getNumEpochs() const { return change_times_.size(); }

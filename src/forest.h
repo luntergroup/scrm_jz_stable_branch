@@ -199,7 +199,7 @@ class Forest
   void clearSumStats();
   void printLocusSumStats(std::ostream &output) const;
   void printSegmentSumStats(std::ostream &output) const;
-  double get_rec_base(const size_t idx) const { return rec_bases_.at(idx); }
+  double get_rec_base(const size_t idx) const { return rec_bases_[idx]; }
   double current_base() const { return get_rec_base(current_rec_); }
   double next_base() const { return get_rec_base(current_rec_ + 1); }
   void set_current_base(double const base) { rec_bases_[current_rec_] = base; };
