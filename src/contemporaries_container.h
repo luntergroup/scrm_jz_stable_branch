@@ -113,6 +113,7 @@ class ContemporariesContainer {
 
   void add(Node* node);
   void remove(Node *node);
+  void remove_or_replace(Node* node, Node** replacement);
   void replaceChildren(Node *add_node);
   void replace(Node *add_node, Node *del_node_1, Node *del_node_2 = NULL);
   void clear(const bool clear_buffer = true);
@@ -266,15 +267,35 @@ inline void ContemporariesContainer::remove(Node* node) {
   }
 }
 
+inline void ContemporariesContainer::remove_or_replace(Node* node, Node** replacement) {
+  assert(node != NULL);
+  if (use_set_) contemporaries_set().at(node->population()).erase(node);
+  else {
+    size_t pop = node->population();
+    auto it = std::find(contemporaries_vector()[pop].begin(),
+                        contemporaries_vector()[pop].end(),
+                        node);
+    if (it != contemporaries_vector()[pop].end()) {
+        if (*replacement) {
+            *it = *replacement;
+            *replacement = NULL;
+        } else {
+            contemporaries_vector()[pop].erase(it);
+        }
+    }
+  }
+}
+
 inline void ContemporariesContainer::replaceChildren(Node *add_node) {
   replace(add_node, add_node->first_child(), add_node->second_child());
 }
 
 inline void ContemporariesContainer::replace(Node *add_node, Node *del_node_1, Node *del_node_2) {
   assert(add_node != NULL);
-  if (del_node_1 != NULL) remove(del_node_1);
-  if (del_node_2 != NULL) remove(del_node_2);
-  if (!add_node->is_root()) add(add_node);
+  if (add_node->is_root()) add_node=NULL;
+  if (del_node_1 != NULL) remove_or_replace(del_node_1, &add_node);
+  if (del_node_2 != NULL) remove_or_replace(del_node_2, &add_node);
+  if (add_node) add(add_node);
 }
 
 
