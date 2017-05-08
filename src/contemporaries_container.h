@@ -276,7 +276,7 @@ inline void ContemporariesContainer::remove_or_replace(Node* node, Node** replac
                         contemporaries_vector()[pop].end(),
                         node);
     if (it != contemporaries_vector()[pop].end()) {
-        if (*replacement) {
+        if (*replacement && (*replacement)->population() == pop) {
             *it = *replacement;
             *replacement = NULL;
         } else {
