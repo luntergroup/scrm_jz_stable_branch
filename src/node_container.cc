@@ -52,23 +52,50 @@ NodeContainer::NodeContainer(const NodeContainer &nc) {
 
   this->unsorted_node_ = NULL;
 
-  std::map<Node const*, Node*> node_mapping;
-  node_mapping[NULL] = NULL;
+  if (nc.size() > lane_max_size) {
+      std::map<Node const*, Node*> node_mapping;
+      node_mapping[NULL] = NULL;
 
-  for (auto it = nc.iterator(); it.good(); ++it) {
-    Node *node = this->createNode(**it);
-    //Node *node = new Node(**it);
-    node_mapping[*it] = node;
-    this->add(node);
+      for (auto it = nc.iterator(); it.good(); ++it) {
+          Node *node = this->createNode(**it);
+          node_mapping[*it] = node;
+          this->add(node);
+      }
+      assert( this->sorted() );
+      
+      for (auto it = iterator(); it.good(); ++it) {
+          if (!(*it)->is_root()) (*it)->set_parent(node_mapping[(*it)->parent()]);
+          (*it)->set_first_child(node_mapping[(*it)->first_child()]);
+          (*it)->set_second_child(node_mapping[(*it)->second_child()]);
+      }
+      unsorted_node_ = node_mapping[nc.unsorted_node_];
+  } else {
+      int index = 0;
+      NodeContainer* nc_ = const_cast<NodeContainer*>(&nc);
+      for (auto it = nc_->iterator(); it.good(); ++it) {
+          Node *node = this->createNode(**it);
+          add(node);
+          (*it)->set_label( index ); // will be reverted later
+          if ((*it)->first_child())  {
+              node->set_first_child( &((*new_lane)[ (*it)->first_child()->label() ]) );
+              (*new_lane)[ (*it)->first_child()->label() ].set_parent( node );
+          }
+          if ((*it)->second_child()) {
+              node->set_second_child( &((*new_lane)[ (*it)->second_child()->label() ]) );
+              (*new_lane)[ (*it)->second_child()->label() ].set_parent( node );
+          }
+          if (*it == nc.unsorted_node_) {
+              unsorted_node_ = node;
+          }
+          ++index;
+      }
+      // revert label to its original value
+      index = 0;
+      for (auto it = nc_->iterator(); it.good(); ++it) {
+          (*it)->set_label( (*new_lane)[ index ].label() );
+          ++index;
+      }
   }
-  assert( this->sorted() );
-
-  for (auto it = iterator(); it.good(); ++it) {
-    if (!(*it)->is_root()) (*it)->set_parent(node_mapping[(*it)->parent()]);
-    (*it)->set_first_child(node_mapping[(*it)->first_child()]);
-    (*it)->set_second_child(node_mapping[(*it)->second_child()]);
-  }
-  unsorted_node_ = node_mapping[nc.unsorted_node_];
 }
 
 /*******************************************************
