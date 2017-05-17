@@ -74,14 +74,18 @@ class Model
 
 
    // Default values;
-   constexpr static double default_pop_size_ = 10000.0;
+   double default_pop_size_ = 10000.0;
+   double scaling_factor_ = -1;
    constexpr static double default_growth_rate = 0.0;
    constexpr static double default_mig_rate = 0.0;
-   constexpr static double scaling_factor_ = 1.0 / (4 * default_pop_size_);
 
    // Getters & Setters
-   double default_pop_size() const { return Model::default_pop_size_; };
+   double default_pop_size() const { const_cast<Model*>(this)->scaling_factor_ = 1.0 / (4 * default_pop_size_); return default_pop_size_; };
 
+   void set_default_pop_size(int N0) {
+     if (scaling_factor_ > 0.0) throw std::invalid_argument("Default population size (-N0) must be set before other population-related parameters");
+     default_pop_size_ = N0;
+   }
 
    const std::vector<double>& change_times() const { return change_times_; }
 
@@ -90,7 +94,7 @@ class Model
     *
     * @return 1 / ( 4 * default_pop_size);
     */
-   double scaling_factor() const { return scaling_factor_; };
+   double scaling_factor() const { const_cast<Model*>(this)->scaling_factor_ = 1.0 / (4 * default_pop_size_); return scaling_factor_; };
 
    /**
     * @brief Returns the mutation rate per base pair per generation for the

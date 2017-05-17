@@ -432,6 +432,12 @@ Model Param::parse() {
       transpose = true;
     }
 
+    // ------------------------------------------------------------------
+    // Setting N0 -- for use by smcsmc, to scale internal parameters
+    // ------------------------------------------------------------------
+    else if (*argv_i == "-N0") {
+      model.set_default_pop_size( readNextInput<double>() );
+    }
 
     // ------------------------------------------------------------------
     // Unsupported ms arguments
