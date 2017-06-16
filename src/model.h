@@ -460,29 +460,22 @@ class Model
     bool biased_sampling = false;                         // this is turned on if br or bh is set
     std::vector<double> bias_heights_;                    // this vector defines the outer time boundaries of the sections with different rec rate
     std::vector<double> bias_strengths_;                  // this vector defines how the below ratios should be scaled relative to each other
-    std::vector<double> bias_ratios_;                     // this vector holds ratios r, to impose rec rate of rho*r_i in time section i
-    // NB: bias_ratios_ must be scaled for each demographic model using model_summary, otherwise the recombination rate estimate will diverge
     std::vector<double> application_delays;                 // should init to (getNumEpochs(), 0)
 
     const std::vector<double>& bias_heights() const {return bias_heights_;}
-    const std::vector<double>& bias_ratios() const {return bias_ratios_;}
     const std::vector<double>& bias_strengths() const {return bias_strengths_;}
 
     void clearBiasHeights()                  { bias_heights_.clear(); }
-    void clearBiasRatios()                   { bias_ratios_.clear(); }
-    void clearBiasStrengths()                { bias_strengths_.clear(); bias_ratios_.clear(); }
+    void clearBiasStrengths()                { bias_strengths_.clear(); /*bias_ratios_.clear();*/ }
     void addToBiasHeights(double height)     { biased_sampling = true;
                                                bias_heights_.push_back( height ); }   // height is scaled in generations (TODO: change)
-    void addToBiasRatios(double ratio)       { biased_sampling = true;
-                                               bias_ratios_.push_back( ratio ); }
     void addToBiasStrengths(double strength) { biased_sampling = true;
-                                               bias_strengths_.push_back( strength );
-                                               addToBiasRatios( strength ); }         // also add default bias ratio
+                                               bias_strengths_.push_back( strength ); }
 
-    void lags_to_application_delays(std::vector<double> lags) {
+    void lags_to_application_delays(std::vector<double> lags, float scale = 0.5) {
         application_delays.resize(0);
         for( size_t i=0; i<lags.size(); i++){
-            application_delays.push_back( 0.5*lags.at(i) );
+            application_delays.push_back( scale * lags.at(i) );
         }
     }
 
