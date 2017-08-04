@@ -293,6 +293,11 @@ Model Param::parse() {
 
     else if (*argv_i == "-eps") {
       time = readNextInput<double>();
+      if (time < min_time) {
+        throw std::invalid_argument(std::string("You must sort population merges ('-eps'),") +
+                                    std::string("by the time they occur."));
+      }
+      min_time = time;
       source_pop = readNextInt() - 1;
       sink_pop = readNextInt() - 1;
       double fraction = readNextInput<double>();
@@ -310,6 +315,11 @@ Model Param::parse() {
     // ------------------------------------------------------------------
     else if (*argv_i == "-ej") {
       time = readNextInput<double>();
+      if (time < min_time) {
+        throw std::invalid_argument(std::string("You must sort multiple population splits ('-ej'),") +
+                                    std::string("by the time they occur."));
+      }
+      min_time = time;
       source_pop = readNextInt() - 1;
       sink_pop = readNextInt() - 1;
       model.addSingleMigrationEvent(time, source_pop, sink_pop, 1.0, true);
