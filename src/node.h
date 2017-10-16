@@ -56,6 +56,7 @@ class Node
   friend class TestNodeContainer;
 #endif
   friend class NodeContainer;
+  friend class ForestState;
 
   ~Node();
 

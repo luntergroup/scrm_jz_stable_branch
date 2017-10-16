@@ -36,17 +36,10 @@ class RandomGenerator
 {
  friend class MersenneTwister;
  public:
-//<<<<<<< HEAD
-  //RandomGenerator() { this->ff_ = new FastFunc(); };
-  //RandomGenerator( FastFunc* ff ) { this->ff_ = ff; };
-  //virtual ~RandomGenerator() { }
-  //void clearFastFunc() { delete this->ff_; }
-//=======
   RandomGenerator() : ff_(std::make_shared<FastFunc>()) { };
   RandomGenerator(std::shared_ptr<FastFunc> ff) : ff_(ff) { };
 
   virtual ~RandomGenerator() {}
-//>>>>>>> myMaster
 
   //Getters & Setters
   size_t seed() const { return seed_; }
