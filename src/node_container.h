@@ -178,6 +178,12 @@ class NodeIterator {
     return current_node_;
   }
 
+  Node* operator*() const {
+    if (current_node_ == NULL)
+      throw std::out_of_range("Node iterator out of range");
+    return current_node_;
+  }
+  
   Node* operator++() {
     if (current_node_ == NULL)
       throw std::out_of_range("Node iterator out of range");

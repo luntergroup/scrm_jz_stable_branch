@@ -136,6 +136,7 @@ class Forest
   virtual double samplePoint( bool record_and_bias = false );
   double samplePoint_recursive( Node* node, double length_left ); 
   virtual double sampleNextBase( bool record_and_bias );
+  double continueSamplingNextBase( bool record_and_bias ) { rec_bases_.pop_back(); return sampleNextBase( record_and_bias ); }
   double resampleNextBase() {
       // Resamples next recombination base, in case a state was duplicated. Note that current_base_ must be up to date
       assert ( rec_bases_.size() > 1 );

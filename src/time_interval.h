@@ -58,6 +58,7 @@ class TimeInterval {
   double end_height()    const { return this->end_height_; };
   double length()        const { return (end_height() - start_height()); };
   const Forest &forest() const { return *(this->forest_); }
+  const TimeIntervalIterator* time_interval_iterator() const { return tii_; }
 
   //std::unordered_set<Node*> &contemporaries(const size_t pop = 0);
 
@@ -84,6 +85,7 @@ class TimeIntervalIterator {
   TimeInterval operator++(int) { TimeInterval tmp = current_interval_;
                           next();
                           return tmp; }
+  Node* end_node() const { return (node_iterator_.good() ? *node_iterator_ : NULL); }
 
   // Splits the current interval in two parts by adding a node inside the interval;
   // Only affects the event after the next "next()" which than represents the
