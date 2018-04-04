@@ -168,6 +168,10 @@ class Model
      return 0.5 / inv_double_pop_size(pop, time);
    }
 
+   double coalescent_event_count(const size_t pop = 0) const {
+     return pop_event_count_list_.at( current_time_idx_ ).at( pop );
+   }
+   
    double inv_double_pop_size(const size_t pop = 0, const double time = -1) const {
      double pop_size;
      if (current_pop_sizes_ == NULL)
@@ -202,6 +206,11 @@ class Model
      if (current_mig_rates_ == NULL) return default_mig_rate;
      return current_mig_rates_->at( getMigMatrixIndex(source, sink) );
    };
+
+   double migration_event_count(const size_t source, const size_t sink) const {
+     if (sink == source) return 0.0;
+     return mig_event_count_list_.at( current_time_idx_ ).at( getMigMatrixIndex(source, sink) );
+   }
 
    /**
     * @brief Getter for the current total rate of migrating out of one
@@ -383,13 +392,13 @@ class Model
 
    // Add populations size changes
    void addPopulationSizes(double time, const std::vector<double> &pop_sizes,
-                           const bool &time_scaled = false, const bool &relative = false);
+                           const bool &time_scaled = false, const bool &relative = false, const std::vector<double> *event_counts=NULL);
 
    void addPopulationSizes(const double time, const double pop_size,
-                           const bool &time_scaled = false, const bool &relative = false);
+                           const bool &time_scaled = false, const bool &relative = false, const double event_count = 1e10);
 
    void addPopulationSize(const double time, const size_t pop, double population_sizes,
-                          const bool &time_scaled = false, const bool &relative = false);
+                          const bool &time_scaled = false, const bool &relative = false, const double event_count = 1e10);
 
    // Add exponential growth
    void addGrowthRates(const double time, const std::vector<double> &growth_rates,
@@ -409,13 +418,13 @@ class Model
 
    // functions to add Migration
    void addMigrationRates(double time, const std::vector<double> &mig_rates,
-                          const bool &time_scaled = false, const bool &rate_scaled = false);
+                          const bool &time_scaled = false, const bool &rate_scaled = false, const std::vector<double> *event_counts=NULL);
 
    void addMigrationRate(double time, size_t source, size_t sink, double mig_rate,
-                         const bool &time_scaled = false, const bool &rate_scaled = false);
+                         const bool &time_scaled = false, const bool &rate_scaled = false, double event_count = 1e10);
 
    void addSymmetricMigration(const double time, const double mig_rate,
-                              const bool &time_scaled = false, const bool &rate_scaled = false);
+                              const bool &time_scaled = false, const bool &rate_scaled = false, double event_count = 1e10);
 
    void addSingleMigrationEvent(const double time, const size_t source_pop,
                                 const size_t sink_pop, const double fraction,
@@ -535,6 +544,7 @@ class Model
    // parameters are constant. NULL means that the parameters do not change.
    std::vector<std::vector<double> > growth_rates_list_;
    std::vector<std::vector<double> > mig_rates_list_;
+   std::vector<std::vector<double> > mig_event_count_list_;
    std::vector<std::vector<double> > total_mig_rates_list_;
    std::vector<std::vector<double> > single_mig_probs_list_;
 
@@ -542,6 +552,7 @@ class Model
    // size (do to fast multiplication rather than slow division in the
    // algorithm)
    std::vector<std::vector<double> > pop_sizes_list_;
+   std::vector<std::vector<double> > pop_event_count_list_;
 
    // These vectors contain the model parameters that may change along the sequence.
    // Again, each index represents an sequence segment within with the model
@@ -572,6 +583,7 @@ class Model
 
    bool has_migration_;
    bool has_recombination_;
+   bool variational_bayes_correction_;
 
    SeqScale seq_scale_;
 

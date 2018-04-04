@@ -177,6 +177,12 @@ Model Param::parse() {
     // ------------------------------------------------------------------
     // Populations sizes
     // ------------------------------------------------------------------
+    else if (*argv_i == "-vb" || *argv_i == "-VB") {
+        if (model.getNumEpochs() > 1) {
+	throw std::invalid_argument(std::string("-vb must occur before -eN / -en / -eM / -ema"));
+      }
+      model.variational_bayes_correction_ = true;
+    }
     else if (*argv_i == "-eN" || *argv_i == "-N") {
       if (*argv_i == "-eN") time = readNextInput<double>();
       else time = 0.0;
@@ -184,7 +190,10 @@ Model Param::parse() {
         throw std::invalid_argument(std::string("If you use '-N' or '-eN' in a model with population merges ('-es'),") +
                                     std::string("then you need to sort both arguments by time."));
       }
-      model.addPopulationSizes(time, readNextInput<double>(), true, true);
+      double events = 1e10;
+      double popsize = readNextInput<double>();
+      if (model.variational_bayes_correction_) events = readNextInput<double>();
+      model.addPopulationSizes(time, popsize, true, true, events);
       if (time != 0.0) model.addGrowthRates(time, 0.0, true);
     }
 
@@ -192,7 +201,10 @@ Model Param::parse() {
       if (*argv_i == "-en") time = readNextInput<double>();
       else time = 0.0;
       size_t pop = readNextInt() - 1;
-      model.addPopulationSize(time, pop, readNextInput<double>(), true, true);
+      double events = 1e10;
+      double popsize = readNextInput<double>();
+      if (model.variational_bayes_correction_) events = readNextInput<double>();
+      model.addPopulationSize(time, pop, popsize, true, true, events);
       if (time != 0.0) model.addGrowthRate(time, pop, 0.0, true);
     }
 
@@ -229,16 +241,26 @@ Model Param::parse() {
                                     std::string("then you need to sort both arguments by time."));
       }
       std::vector<double> migration_rates;
+      std::vector<double> migration_events;
       for (size_t i = 0; i < model.population_number(); ++i) {
         for (size_t j = 0; j < model.population_number(); ++j) {
           if (i==j) {
             migration_rates.push_back(0.0);
+	    migration_events.push_back(1e10);
             ++argv_i;
+	    if (model.variational_bayes_correction_) ++argv_i;
           }
-          else migration_rates.push_back(readNextInput<double>());
+          else {
+	    migration_rates.push_back(readNextInput<double>());
+	    if (model.variational_bayes_correction_) {
+	      migration_events.push_back(readNextInput<double>());
+	    } else {
+	      migration_events.push_back(1e10);
+	    }
+	  }
         }
       }
-      model.addMigrationRates(time, migration_rates, true, true);
+      model.addMigrationRates(time, migration_rates, true, true, &migration_events);
     }
 
     else if (*argv_i == "-m" || *argv_i == "-em") {
@@ -252,7 +274,7 @@ Model Param::parse() {
       }
       source_pop = readNextInt() - 1;
       sink_pop = readNextInt() - 1;
-
+      // note -- no support for variational bayes correction here, not used in smcsmc.py
       model.addMigrationRate(time, source_pop, sink_pop, readNextInput<double>(), true, true);
     }
 
@@ -265,7 +287,10 @@ Model Param::parse() {
         throw std::invalid_argument(std::string("If you use '-M' or '-eM' in a model with population merges ('-es'),") +
                                     std::string("then you need to sort both arguments by time."));
       }
-      model.addSymmetricMigration(time, readNextInput<double>()/(model.population_number()-1), true, true);
+      double rate = readNextInput<double>() / (model.population_number()-1);
+      double events = 1e10;
+      if (model.variational_bayes_correction_) events = readNextInput<double>()/(model.population_number()-1);
+      model.addSymmetricMigration(time, rate, true, true, events);
     }
 
     // ------------------------------------------------------------------

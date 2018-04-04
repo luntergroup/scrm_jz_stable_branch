@@ -24,7 +24,8 @@
 
 Model::Model() :
   has_migration_(false),
-  has_recombination_(false) {
+  has_recombination_(false),
+  variational_bayes_correction_(false) {
 
   this->set_loci_number(1);
   this->setLocusLength(1);
@@ -51,7 +52,8 @@ Model::Model() :
 
 Model::Model(size_t sample_size) :
   has_migration_(false),
-  has_recombination_(false) {
+  has_recombination_(false),
+  variational_bayes_correction_(false) {
 
   this->set_loci_number(1);
   this->setLocusLength(1);
@@ -98,8 +100,10 @@ size_t Model::addChangeTime(double time, const bool &scaled) {
   if ( change_times_.size() == 0 ) {
     change_times_ = std::vector<double>(1, time);
     pop_sizes_list_.push_back(std::vector<double>());
+    pop_event_count_list_.push_back(std::vector<double>());
     growth_rates_list_.push_back(std::vector<double>());
     mig_rates_list_.push_back(std::vector<double>());
+    mig_event_count_list_.push_back(std::vector<double>());
     total_mig_rates_list_.push_back(std::vector<double>());
     single_mig_probs_list_.push_back(std::vector<double>());
     return position;
@@ -116,8 +120,10 @@ size_t Model::addChangeTime(double time, const bool &scaled) {
 
   // Add Null at the right position in all parameter vectors
   pop_sizes_list_.insert(pop_sizes_list_.begin() + position, std::vector<double>());
+  pop_event_count_list_.insert(pop_event_count_list_.begin() + position, std::vector<double>());
   growth_rates_list_.insert(growth_rates_list_.begin() + position, std::vector<double>());
   mig_rates_list_.insert(mig_rates_list_.begin() + position, std::vector<double>());
+  mig_event_count_list_.insert(mig_event_count_list_.begin() + position, std::vector<double>());
   total_mig_rates_list_.insert(total_mig_rates_list_.begin() + position, std::vector<double>());
   single_mig_probs_list_.insert(single_mig_probs_list_.begin() + position, std::vector<double>());
   return position;
@@ -194,7 +200,7 @@ void Model::addSampleSizes(double time, const std::vector<size_t> &samples_sizes
  *    N0, or to FALSE if they are absolute values.
  */
 void Model::addPopulationSizes(double time, const std::vector<double> &pop_sizes,
-                               const bool &time_scaled, const bool &relative) {
+                               const bool &time_scaled, const bool &relative, const std::vector<double> *event_counts) {
 
   if ( pop_sizes.size() != population_number() )
     throw std::logic_error("Population size values do not meet the number of populations");
@@ -202,6 +208,7 @@ void Model::addPopulationSizes(double time, const std::vector<double> &pop_sizes
   size_t position = addChangeTime(time, time_scaled);
 
   pop_sizes_list_[position].clear();
+  pop_event_count_list_[position].clear();
   for (double pop_size : pop_sizes) {
     if (!std::isnan(pop_size)) {
       // Scale to absolute values if necessary
@@ -210,6 +217,11 @@ void Model::addPopulationSizes(double time, const std::vector<double> &pop_sizes
       // Save inverse double value
       if (pop_size <= 0.0) throw std::invalid_argument("population size <= 0");
       pop_size = 1.0 / (2 * pop_size);
+    }
+    if (event_counts) {
+      pop_event_count_list_[position].push_back( (*event_counts)[ pop_sizes_list_[position].size() ] );
+    } else {
+      pop_event_count_list_[position].push_back( 1e10 );
     }
     pop_sizes_list_[position].push_back(pop_size);
   }
@@ -231,8 +243,9 @@ void Model::addPopulationSizes(double time, const std::vector<double> &pop_sizes
  *    N0, or to FALSE if they are absolute values.
  */
 void Model::addPopulationSizes(const double time, const double pop_size,
-                               const bool &time_scaled, const bool &relative) {
-  addPopulationSizes(time, std::vector<double>(population_number(), pop_size), time_scaled, relative);
+                               const bool &time_scaled, const bool &relative, const double event_count) {
+    std::vector<double> events(population_number(), event_count);
+    addPopulationSizes(time, std::vector<double>(population_number(), pop_size), time_scaled, relative, &events);
 }
 
 
@@ -253,14 +266,15 @@ void Model::addPopulationSizes(const double time, const double pop_size,
  *    N0, or to FALSE if they are absolute values.
  */
 void Model::addPopulationSize(const double time, const size_t pop, double population_size,
-                              const bool &time_scaled, const bool &relative) {
+                              const bool &time_scaled, const bool &relative, double event_count) {
   checkPopulation(pop);
   size_t position = addChangeTime(time, time_scaled);
   if (relative) population_size *= default_pop_size();
 
   if (population_size <= 0.0) throw std::invalid_argument("population size <= 0");
-  if (pop_sizes_list_.at(position).empty()) addPopulationSizes(time, nan("value to replace"), time_scaled);
+  if (pop_sizes_list_.at(position).empty()) addPopulationSizes(time, nan("value to replace"), time_scaled, relative, nan("value to replace") );
   pop_sizes_list_.at(position).at(pop) = 1.0/(2*population_size);
+  pop_event_count_list_.at(position).at(pop) = event_count;
 }
 
 
@@ -354,7 +368,7 @@ void Model::addGrowthRate(const double time, const size_t population,
  *
  */
 void Model::addMigrationRate(double time, size_t source, size_t sink, double mig_rate,
-                             const bool &scaled_time, const bool &scaled_rates) {
+                             const bool &scaled_time, const bool &scaled_rates, double event_count) {
   checkPopulation(source);
   checkPopulation(sink);
   size_t position = addChangeTime(time, scaled_time);
@@ -363,6 +377,8 @@ void Model::addMigrationRate(double time, size_t source, size_t sink, double mig
     addSymmetricMigration(time, nan("value to replace"), scaled_time);
   }
   mig_rates_list_.at(position).at(getMigMatrixIndex(source, sink)) = mig_rate;
+  mig_event_count_list_.at(position).at(getMigMatrixIndex(source, sink)) = event_count;
+  
 }
 
 
@@ -387,7 +403,7 @@ void Model::addMigrationRate(double time, size_t source, size_t sink, double mig
  *  false if it is given as m.
  */
 void Model::addMigrationRates(double time, const std::vector<double> &mig_rates,
-                              const bool &scaled_time, const bool &scaled_rates) {
+                              const bool &scaled_time, const bool &scaled_rates, const std::vector<double> *event_counts) {
   double popnr = population_number();
   double scaling = 1;
   if (scaled_rates) scaling = scaling_factor();
@@ -397,10 +413,17 @@ void Model::addMigrationRates(double time, const std::vector<double> &mig_rates,
   size_t position = addChangeTime(time, scaled_time);
   mig_rates_list_[position].clear();
   mig_rates_list_[position].reserve(popnr*popnr-popnr);
+  mig_event_count_list_[position].clear();
+  mig_event_count_list_[position].reserve(popnr*popnr-popnr);
   for (size_t i = 0; i < popnr; ++i) {
     for (size_t j = 0; j < popnr; ++j) {
       if (i == j) continue;
       mig_rates_list_[position].push_back(mig_rates.at(i*popnr+j) * scaling);
+      if (event_counts) {
+	mig_event_count_list_[position].push_back((*event_counts).at(i*popnr+j));
+      } else {
+	mig_event_count_list_[position].push_back( 1e10 );
+      }
     }
   }
 }
@@ -428,9 +451,10 @@ void Model::addMigrationRates(double time, const std::vector<double> &mig_rates,
  *  false if it is given as m.
  */
 void Model::addSymmetricMigration(const double time, const double mig_rate,
-                                  const bool &time_scaled, const bool &rate_scaled) {
+                                  const bool &time_scaled, const bool &rate_scaled, const double event_count) {
     std::vector<double> mig_rates = std::vector<double>(population_number()*population_number(), mig_rate);
-    this->addMigrationRates(time, mig_rates, time_scaled, rate_scaled);
+    std::vector<double> mig_event_counts = std::vector<double>(population_number()*population_number(), event_count);
+    this->addMigrationRates(time, mig_rates, time_scaled, rate_scaled, &mig_event_counts);
   }
 
 
@@ -648,9 +672,11 @@ void Model::addPopulation() {
   // Change Vectors
   addPopToVectorList(growth_rates_list_);
   addPopToVectorList(pop_sizes_list_);
+  addPopToVectorList(pop_event_count_list_);
 
   // Change Matrices
   addPopToMatrixList(mig_rates_list_, new_pop);
+  addPopToMatrixList(mig_event_count_list_, new_pop);
   addPopToMatrixList(single_mig_probs_list_, new_pop, 0);
 }
 
