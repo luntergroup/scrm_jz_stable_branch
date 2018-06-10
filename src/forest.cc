@@ -564,31 +564,31 @@ void Forest::sampleCoalescences( Node *start_node, bool record_and_bias ) {
     assert( tmp_event_.isNoEvent() || (*ti).start_height() <= tmp_event_.time() );
     assert( tmp_event_.isNoEvent() || tmp_event_.time() <= (*ti).end_height() );
 
-    if ( record_and_bias ){
-        this->record_all_event(ti); // Record the recombination events within this interval
-    }
-    // Go on if nothing happens in this time interval
-
     // Implement the event
     if ( tmp_event_.isNoEvent() ) {
+      if ( record_and_bias ) this->record_all_event(ti, NULL); // Record events within this interval
       this->implementNoEvent(*ti, coalescence_finished_);
     }
 
     else if ( tmp_event_.isPwCoalescence() ) {
       this->implementPwCoalescence(active_node(0), active_node(1), tmp_event_.time());
+      if ( record_and_bias ) this->record_all_event(ti, NULL ); // Record the coalescence event (after implementing it)
       this->coalescence_finished_ = true;
     }
 
     else if ( tmp_event_.isRecombination() ) {
+      if ( record_and_bias ) this->record_all_event(ti, NULL); // Record the recombination event
       this->implementRecombination(tmp_event_, ti);
     }
 
     else if ( tmp_event_.isMigration() ) {
+      if ( record_and_bias ) this->record_all_event(ti, NULL); // Record the migration event
       this->implementMigration(tmp_event_, true, ti);
     }
 
     else if ( tmp_event_.isCoalescence() ) {
       this->implementCoalescence(tmp_event_, ti);
+      if ( record_and_bias ) this->record_all_event(ti, NULL ); // Record the coalescence event (after implementing it)
       assert( checkInvariants(tmp_event_.node()) );
       assert( this->printTree() );
     }
@@ -1075,6 +1075,9 @@ void Forest::implementPwCoalescence(Node* root_1, Node* root_2, const double tim
   updateAbove(new_root, false, false);
   coalescence_finished_ = true;
   dout << " done" << std::endl;
+
+  // for recording the coalescence:
+  set_active_node( 0, new_root );
 
   assert( this->local_root()->height() == time );
   assert( root_1->local() );
